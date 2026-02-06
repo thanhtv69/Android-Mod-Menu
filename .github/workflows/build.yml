@@ -10,6 +10,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -28,6 +29,7 @@ jobs:
         shell: bash
         run: |
           set -e
+          GRADLE_URL=""
           if [ -f "gradle/wrapper/gradle-wrapper.properties" ]; then
             GRADLE_URL=$(grep -E '^distributionUrl=' gradle/wrapper/gradle-wrapper.properties | cut -d= -f2- | tr -d '\r')
           fi
@@ -42,13 +44,28 @@ jobs:
           echo "$GRADLE_DIR/bin" >> $GITHUB_PATH
           gradle -v
 
-      - name: Build (Debug + Release)
-        run: gradle clean :app:assembleDebug :app:assembleRelease --no-daemon
+      - name: Build (all variants)
+        run: gradle clean assemble --no-daemon
 
-      - name: Upload APKs
+      - name: List outputs
+        shell: bash
+        run: |
+          echo "=== outputs dirs ==="
+          find . -maxdepth 6 -type d -path "*build/outputs*" -print || true
+          echo "=== APK/AAB files ==="
+          find . -maxdepth 10 -type f \( -name "*.apk" -o -name "*.aab" \) -print || true
+          echo "=== APK folders ==="
+          ls -la app/build/outputs/apk || true
+          ls -la app/build/outputs/apk/debug || true
+          ls -la app/build/outputs/apk/release || true
+          echo "=== Bundle folders ==="
+          ls -la app/build/outputs/bundle || true
+          ls -la app/build/outputs/bundle/release || true
+
+      - name: Upload APK/AAB
         uses: actions/upload-artifact@v4
         with:
-          name: apk-${{ github.run_number }}
+          name: build-${{ github.run_number }}
           path: |
-            app/build/outputs/apk/debug/*.apk
-            app/build/outputs/apk/release/*.apk
+            **/build/outputs/**/*.apk
+            **/build/outputs/**/*.aab
