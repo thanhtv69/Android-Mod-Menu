@@ -1,9 +1,7 @@
-name: Android Build
+name: Android Build (Single Release)
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
     branches: [ "main" ]
   workflow_dispatch:
 
@@ -35,14 +33,16 @@ jobs:
       - name: Build Debug + Release
         run: gradle clean :app:assembleDebug :app:assembleRelease --no-daemon
 
-      - name: Upload Release (unsigned)
-        uses: actions/upload-artifact@v4
+      # 👉 TẠO / CẬP NHẬT RELEASE "latest"
+      - name: Create or Update Release (overwrite)
+        uses: softprops/action-gh-release@v2
         with:
-          name: release-unsigned-${{ github.run_number }}
-          path: app/build/outputs/apk/release/app-release-unsigned.apk
-
-      - name: Upload Debug
-        uses: actions/upload-artifact@v4
-        with:
-          name: debug-${{ github.run_number }}
-          path: app/build/outputs/apk/debug/app-debug.apk
+          tag_name: latest
+          name: Latest build
+          draft: false
+          prerelease: false
+          files: |
+            app/build/outputs/apk/release/app-release-unsigned.apk
+            app/build/outputs/apk/debug/app-debug.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
